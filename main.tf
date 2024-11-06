@@ -72,6 +72,8 @@ resource "aws_lb_listener" "lb_listener" {
   load_balancer_arn = aws_lb.loadbalancer[each.value.lb_index].arn
   port              = each.value.listener.port
   protocol          = each.value.listener.protocol
+  certificate_arn   = each.value.listener.certificate_arn    # Movido aquí
+  ssl_policy        = each.value.listener.protocol == "HTTPS" ? each.value.listener.ssl_policy : null  # Movido aquí
 
   dynamic "default_action" {
     for_each = each.value.listener.default_action.type == "forward" ? [1] : []
@@ -91,20 +93,6 @@ resource "aws_lb_listener" "lb_listener" {
         protocol    = each.value.listener.default_action.redirect.protocol
         status_code = each.value.listener.default_action.redirect.status_code
       }
-    }
-  }
-
-  dynamic "certificate" {
-    for_each = each.value.listener.certificate_arn != null ? [1] : []
-    content {
-      certificate_arn = each.value.listener.certificate_arn
-    }
-  }
-
-  dynamic "ssl_policy" {
-    for_each = each.value.listener.protocol == "HTTPS" ? [1] : []
-    content {
-      ssl_policy = each.value.listener.ssl_policy
     }
   }
 }
