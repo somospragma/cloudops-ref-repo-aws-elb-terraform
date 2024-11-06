@@ -1,4 +1,6 @@
-# main.tf
+####
+# AWS Load Balance
+###
 resource "aws_lb" "loadbalancer" {
   provider = aws.project
   count              = length(var.lb_config) > 0 ? length(var.lb_config) : 0
