@@ -73,11 +73,12 @@ resource "aws_lb_listener" "lb_listener" {
     ]) : item.key => item
   }
 
-  load_balancer_arn = aws_lb.loadbalancer[each.value.lb_index].arn
+  # Aquí está el cambio: usamos lb_key en lugar de lb_index
+  load_balancer_arn = aws_lb.loadbalancer[each.value.lb_key].arn
   port              = each.value.listener.port
   protocol          = each.value.listener.protocol
-  certificate_arn   = each.value.listener.certificate_arn    # Movido aquí
-  ssl_policy        = each.value.listener.protocol == "HTTPS" ? each.value.listener.ssl_policy : null  # Movido aquí
+  certificate_arn   = each.value.listener.certificate_arn
+  ssl_policy        = each.value.listener.protocol == "HTTPS" ? each.value.listener.ssl_policy : null
 
   dynamic "default_action" {
     for_each = each.value.listener.default_action.type == "forward" ? [1] : []
