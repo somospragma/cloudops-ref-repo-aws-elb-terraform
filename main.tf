@@ -1,5 +1,6 @@
 # main.tf
 resource "aws_lb" "loadbalancer" {
+  provider = aws.project
   count              = length(var.lb_config) > 0 ? length(var.lb_config) : 0
   name               = "${join("-", tolist([var.client, var.environment,"${var.lb_config[count.index].application_id}", "${var.lb_config[count.index].load_balancer_type == "application" ? "a" : "n"}lb", count.index + 1]))}"
   internal           = var.lb_config[count.index].internal
@@ -16,6 +17,7 @@ resource "aws_lb" "loadbalancer" {
 }
 
 resource "aws_lb_target_group" "lb_target_group" {
+  provider = aws.project
   for_each = {
     for item in flatten([for lb in var.lb_config : [for targets in lb.target_groups : {
       "target_application_id" : targets.target_application_id
@@ -52,6 +54,7 @@ resource "aws_lb_target_group" "lb_target_group" {
 }
 
 resource "aws_lb_listener" "lb_listener" {
+  provider = aws.project
   for_each = {
     for item in flatten([
       for lb_idx, lb in var.lb_config : [
