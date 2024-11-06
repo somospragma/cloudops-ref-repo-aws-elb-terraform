@@ -32,7 +32,6 @@ variable "lb_config" {
         })
       }))
       application_id = string
-      ticket = string
       accessclass = string
     }))
 }
