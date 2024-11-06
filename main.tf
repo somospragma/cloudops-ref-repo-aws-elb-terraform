@@ -38,7 +38,7 @@ resource "aws_lb_target_group" "lb_target_group" {
     }]]) : "${item.target_application_id}" => item
   }
   
-  name        = join("-", tolist([var.client, var.project, var.environment, "target", each.key]))
+  name        = join("-", tolist([var.client, var.project, var.environment, "tg", each.key]))
   port        = each.value.port
   protocol    = each.value.protocol
   vpc_id      = each.value.vpc_id
