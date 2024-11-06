@@ -1,10 +1,12 @@
 # outputs.tf
 output "load_balancer_info" {
-  value = [for lb in aws_lb.loadbalancer : {
-    "alb_arn" : lb.arn, 
-    "alb_dns" : lb.dns_name, 
-    "alb_zone": lb.zone_id
-  }]
+  value = {
+    for k, lb in aws_lb.loadbalancer : k => {
+      "alb_arn" : lb.arn,
+      "alb_dns" : lb.dns_name,
+      "alb_zone": lb.zone_id
+    }
+  }
 }
 
 output "target_group_info" {

@@ -3,20 +3,24 @@
 ###
 resource "aws_lb" "loadbalancer" {
   provider = aws.project
-  count              = length(var.lb_config) > 0 ? length(var.lb_config) : 0
-  name               = "${join("-", tolist([var.client, var.environment,"${var.lb_config[count.index].application_id}", "${var.lb_config[count.index].load_balancer_type == "application" ? "a" : "n"}lb", count.index + 1]))}"
-  internal           = var.lb_config[count.index].internal
-  subnets            = var.lb_config[count.index].subnets
-  security_groups    = var.lb_config[count.index].security_groups
-  load_balancer_type = var.lb_config[count.index].load_balancer_type
+  for_each = {
+    for idx, lb in var.lb_config : "${lb.application_id}-${lb.load_balancer_type}" => lb
+  }
+  
+  name               = join("-", tolist([var.client, var.environment, each.value.application_id, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb"]))
+  internal           = each.value.internal
+  subnets           = each.value.subnets
+  security_groups    = each.value.security_groups
+  load_balancer_type = each.value.load_balancer_type
   drop_invalid_header_fields = true
   enable_deletion_protection = true
   enable_cross_zone_load_balancing = true
 
   tags = merge({ 
-    Name = "${join("-", tolist([var.client, var.environment,"${var.lb_config[count.index].application_id}", "${var.lb_config[count.index].load_balancer_type == "application" ? "a" : "n"}lb", count.index + 1]))}" 
+    Name = join("-", tolist([var.client, var.environment, each.value.application_id, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb"]))
   })
 }
+
 
 resource "aws_lb_target_group" "lb_target_group" {
   provider = aws.project
@@ -59,9 +63,9 @@ resource "aws_lb_listener" "lb_listener" {
   provider = aws.project
   for_each = {
     for item in flatten([
-      for lb_idx, lb in var.lb_config : [
-        for listener_idx, listener in lb.listeners : {
-          lb_index = lb_idx
+      for lb in var.lb_config : [
+        for listener in lb.listeners : {
+          lb_key = "${lb.application_id}-${lb.load_balancer_type}"
           listener = listener
           key = "${lb.application_id}-${listener.port}"
         }
