@@ -7,7 +7,7 @@ resource "aws_lb" "loadbalancer" {
     for idx, lb in var.lb_config : "${lb.application_id}-${lb.load_balancer_type}" => lb
   }
   
-  name               = join("-", tolist([var.client, var.environment, each.value.application_id, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb"]))
+  name               = join("-", tolist([var.client, var.project, var.environment, each.value.application_id, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb"]))
   internal           = each.value.internal
   subnets           = each.value.subnets
   security_groups    = each.value.security_groups
@@ -17,7 +17,7 @@ resource "aws_lb" "loadbalancer" {
   enable_cross_zone_load_balancing = true
 
   tags = merge({ 
-    Name = join("-", tolist([var.client, var.environment, each.value.application_id, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb"]))
+    Name = join("-", tolist([var.client, var.project, var.environment, each.value.application_id, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb"]))
   })
 }
 
@@ -38,7 +38,7 @@ resource "aws_lb_target_group" "lb_target_group" {
     }]]) : "${item.target_application_id}" => item
   }
   
-  name        = join("-", tolist([var.environment, "target", each.key]))
+  name        = join("-", tolist([var.client, var.project, var.environment, "target", each.key]))
   port        = each.value.port
   protocol    = each.value.protocol
   vpc_id      = each.value.vpc_id
