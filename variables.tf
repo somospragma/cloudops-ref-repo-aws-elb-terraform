@@ -48,3 +48,8 @@ variable "client" {
 variable "environment" {
   type = string
 }
+
+variable "project" {
+    description = "Nombre de Projecto"
+    type = string
+}
