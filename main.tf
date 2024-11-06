@@ -54,7 +54,7 @@ resource "aws_lb_target_group" "lb_target_group" {
   }
 
   tags = merge({ 
-    Name = "${join("-", tolist([var.environment, "target", each.key]))}" 
+    Name = "${join("-", tolist([var.client, var.project, var.environment, "tg", each.key]))}" 
   },
   { application_id = each.value.target_application_id})
 }
