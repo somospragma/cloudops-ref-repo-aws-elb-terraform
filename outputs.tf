@@ -1,4 +1,3 @@
-# outputs.tf
 output "load_balancer_info" {
   value = {
     for k, lb in aws_lb.loadbalancer : k => {

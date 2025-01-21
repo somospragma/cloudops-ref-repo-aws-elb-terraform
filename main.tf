@@ -1,26 +1,26 @@
-####
-# AWS Load Balance
-###
+###########################################
+########### LB Resources ##################
+###########################################
+
 resource "aws_lb" "loadbalancer" {
   provider = aws.project
   for_each = {
-    for idx, lb in var.lb_config : "${lb.application_id}-${lb.load_balancer_type}" => lb
+    for idx, lb in var.lb_config : "${lb.application}-${lb.load_balancer_type}" => lb
   }
   
-  name               = join("-", tolist([var.client, var.project, var.environment, each.value.application_id, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb"]))
-  internal           = each.value.internal
-  subnets           = each.value.subnets
-  security_groups    = each.value.security_groups
-  load_balancer_type = each.value.load_balancer_type
-  drop_invalid_header_fields = true
-  enable_deletion_protection = true
+  name                             = join("-", tolist([var.client, var.project, var.environment, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb"], each.value.application, var.functionality))
+  internal                         = each.value.internal
+  subnets                          = each.value.subnets
+  security_groups                  = each.value.security_groups
+  load_balancer_type               = each.value.load_balancer_type
+  drop_invalid_header_fields       = true
+  enable_deletion_protection       = true
   enable_cross_zone_load_balancing = true
 
   tags = merge({ 
-    Name = join("-", tolist([var.client, var.project, var.environment, each.value.application_id, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb"]))
+    Name = join("-", tolist([var.client, var.project, var.environment, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb"], each.value.application, var.functionality))
   })
 }
-
 
 resource "aws_lb_target_group" "lb_target_group" {
   provider = aws.project
@@ -46,10 +46,10 @@ resource "aws_lb_target_group" "lb_target_group" {
 
   health_check {
     healthy_threshold   = each.value.healthy_threshold
-    interval           = each.value.interval
-    path               = each.value.path
-    port               = each.value.port
-    protocol           = each.value.protocol
+    interval            = each.value.interval
+    path                = each.value.path
+    port                = each.value.port
+    protocol            = each.value.protocol
     unhealthy_threshold = each.value.unhealthy_threshold
   }
 
@@ -65,15 +65,14 @@ resource "aws_lb_listener" "lb_listener" {
     for item in flatten([
       for lb in var.lb_config : [
         for listener in lb.listeners : {
-          lb_key = "${lb.application_id}-${lb.load_balancer_type}"
+          lb_key = "${lb.application}-${lb.load_balancer_type}"
           listener = listener
-          key = "${lb.application_id}-${listener.port}"
+          key = "${lb.application}-${listener.port}"
         }
       ]
     ]) : item.key => item
   }
 
-  # Aquí está el cambio: usamos lb_key en lugar de lb_index
   load_balancer_arn = aws_lb.loadbalancer[each.value.lb_key].arn
   port              = each.value.listener.port
   protocol          = each.value.listener.protocol
