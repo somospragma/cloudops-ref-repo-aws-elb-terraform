@@ -62,7 +62,7 @@ lb_config = [{
         {
             port            = 443
             protocol        = "HTTPS"
-            certificate_arn = "PENDING"
+            certificate_arn = "arn_acm"
             default_action = {
                 type             = "forward"
                 target_group_key = "web01"
