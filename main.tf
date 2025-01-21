@@ -8,7 +8,7 @@ resource "aws_lb" "loadbalancer" {
     for idx, lb in var.lb_config : "${lb.application}-${lb.load_balancer_type}" => lb
   }
   
-  name                             = join("-", tolist([var.client, var.project, var.environment, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb"], each.value.application, var.functionality))
+  name                             = join("-", tolist([var.client, var.project, var.environment, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb", each.value.application, var.functionality]))
   internal                         = each.value.internal
   subnets                          = each.value.subnets
   security_groups                  = each.value.security_groups
@@ -18,7 +18,7 @@ resource "aws_lb" "loadbalancer" {
   enable_cross_zone_load_balancing = true
 
   tags = merge({ 
-    Name = join("-", tolist([var.client, var.project, var.environment, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb"], each.value.application, var.functionality))
+    Name = join("-", tolist([var.client, var.project, var.environment, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb", each.value.application, var.functionality]))
   })
 }
 
