@@ -14,7 +14,7 @@ Consulta CHANGELOG.md para la lista de cambios de cada versión. *Recomendamos e
 El módulo cuenta con la siguiente estructura:
 
 ```bash
-cloudops-ref-repo-aws-vpc-terraform/
+cloudops-ref-repo-aws-elb-terraform/
 └── sample/elb
     ├── data.tf
     ├── main.tf
@@ -58,7 +58,7 @@ provider "aws" {
 }
 
 sample/elb/main.tf
-module "ecr" {
+module "elb" {
   source = ""
   providers = {
     aws.project = aws.alias01
@@ -70,7 +70,7 @@ module "ecr" {
 ## Uso del Módulo:
 
 ```hcl
-module "ecr" {
+module "elb" {
   source = ""
   
   providers = {
