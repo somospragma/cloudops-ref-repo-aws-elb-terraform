@@ -2,11 +2,11 @@
 
 ## Descripción:
 
-Este módulo facilita la creación de un Elastic Load Balancer (ELB) completo en AWS, realizando las siguientes acciones:
+Este módulo facilita la creación de los siguientes recursos en AWS:
 
-- Crear Load Balancer
-- Crear Target Group
-- Crear Listener
+- Load Balancer
+- Target Group
+- Listener
 
 Consulta CHANGELOG.md para la lista de cambios de cada versión. *Recomendamos encarecidamente que en tu código fijes la versión exacta que estás utilizando para que tu infraestructura permanezca estable y actualices las versiones de manera sistemática para evitar sorpresas.*
 
