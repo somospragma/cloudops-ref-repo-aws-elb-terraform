@@ -40,7 +40,7 @@ resource "aws_lb_target_group" "lb_target_group" {
     }]]) : "${item.target_application_id}" => item
   }
   
-  name        = join("-", tolist([var.client, var.project, var.environment, "tg", each.key ])) #PENDING
+  name        = join("-", tolist([var.client, var.project, var.environment, "tg", var.application, each.key ])) #PENDING
   port        = each.value.port
   protocol    = each.value.protocol
   vpc_id      = each.value.vpc_id
@@ -56,7 +56,7 @@ resource "aws_lb_target_group" "lb_target_group" {
   }
 
   tags = merge({ 
-    Name = "${join("-", tolist([var.client, var.project, var.environment, "tg", each.key]))}" #PENDING
+    Name = "${join("-", tolist([var.client, var.project, var.environment, "tg", var.application, each.key]))}" #PENDING
   },
   { application_id = each.value.target_application_id})
 }
