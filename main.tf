@@ -5,20 +5,22 @@
 resource "aws_lb" "loadbalancer" {
   provider = aws.project
   for_each = {
-    for idx, lb in var.lb_config : "${lb.application}-${lb.load_balancer_type}" => lb
+    for idx, lb in var.lb_config : "${lb.application}-${lb.load_balancer_type}" => merge(lb, {
+      index = idx
+    })
   }
-  
-  name                             = join("-", tolist([var.client, var.project, var.environment, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb", each.value.application, var.functionality]))
+  name = join("-", tolist([var.client, var.project, var.environment, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb", each.value.application, var.functionality, format("%02d", each.value.index + 1)
+  ]))
   internal                         = each.value.internal
-  subnets                          = each.value.subnets
-  security_groups                  = each.value.security_groups
-  load_balancer_type               = each.value.load_balancer_type
-  drop_invalid_header_fields       = true
-  enable_deletion_protection       = true
+  subnets                         = each.value.subnets
+  security_groups                 = each.value.security_groups
+  load_balancer_type              = each.value.load_balancer_type
+  drop_invalid_header_fields      = true
+  enable_deletion_protection      = true
   enable_cross_zone_load_balancing = true
-
   tags = merge({ 
-    Name = join("-", tolist([var.client, var.project, var.environment, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb", each.value.application, var.functionality]))
+    Name = join("-", tolist([var.client, var.project, var.environment, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb", each.value.application, var.functionality, format("%02d", each.value.index + 1)
+    ]))
   })
 }
 
