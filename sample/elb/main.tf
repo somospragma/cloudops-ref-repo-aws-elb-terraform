@@ -13,7 +13,6 @@ module "alb" {
   client        = var.client
   project       = var.project
   application   = var.application
-  functionality = var.functionality
   environment   = var.environment
 
   # LB configuration

@@ -9,7 +9,7 @@ resource "aws_lb" "loadbalancer" {
       index = idx
     })
   }
-  name = join("-", tolist([var.client, var.project, var.environment, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb", each.value.application, var.functionality, format("%02d", each.value.index + 1)
+  name = join("-", tolist([var.client, var.project, var.environment, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb", each.value.application, format("%02d", each.value.index + 1)
   ]))
   internal                         = each.value.internal
   subnets                         = each.value.subnets
@@ -19,7 +19,7 @@ resource "aws_lb" "loadbalancer" {
   enable_deletion_protection      = true
   enable_cross_zone_load_balancing = true
   tags = merge({ 
-    Name = join("-", tolist([var.client, var.project, var.environment, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb", each.value.application, var.functionality, format("%02d", each.value.index + 1)
+    Name = join("-", tolist([var.client, var.project, var.environment, "${each.value.load_balancer_type == "application" ? "a" : "n"}lb", each.value.application, format("%02d", each.value.index + 1)
     ]))
   })
 }
@@ -40,7 +40,7 @@ resource "aws_lb_target_group" "lb_target_group" {
     }]]) : "${item.target_application_id}" => item
   }
   
-  name        = join("-", tolist([var.client, var.project, var.environment, "tg", each.key, var.functionality])) #PENDING
+  name        = join("-", tolist([var.client, var.project, var.environment, "tg", each.key ])) #PENDING
   port        = each.value.port
   protocol    = each.value.protocol
   vpc_id      = each.value.vpc_id
@@ -56,7 +56,7 @@ resource "aws_lb_target_group" "lb_target_group" {
   }
 
   tags = merge({ 
-    Name = "${join("-", tolist([var.client, var.project, var.environment, "tg", each.key, var.functionality]))}" #PENDING
+    Name = "${join("-", tolist([var.client, var.project, var.environment, "tg", each.key]))}" #PENDING
   },
   { application_id = each.value.target_application_id})
 }

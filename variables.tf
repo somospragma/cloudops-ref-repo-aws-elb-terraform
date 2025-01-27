@@ -22,11 +22,6 @@ variable "application" {
   description = "Application name"
 }
 
-variable "functionality" {
-  type = string  
-  description = "Functionality name"
-}
-
 ###########################################
 ############# LB variables ################
 ###########################################

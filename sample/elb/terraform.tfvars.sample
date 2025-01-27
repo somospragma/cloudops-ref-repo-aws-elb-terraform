@@ -8,7 +8,6 @@ environment = "dev"
 client      = "cliente01"
 project     = "proyecto01"
 application = "app01"
-functionality = "web01"
 common_tags = {
   environment   = "dev"
   project-name  = "proyecto01"
