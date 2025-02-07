@@ -40,6 +40,7 @@ lb_config = [{
         interval              = "30"
         path                  = "/health"
         unhealthy_threshold   = "2"
+        timeout               = "10"
     }]
 
     # Listeners configuration
