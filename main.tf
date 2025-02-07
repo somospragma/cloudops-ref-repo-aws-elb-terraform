@@ -37,7 +37,7 @@ resource "aws_lb_target_group" "lb_target_group" {
       "interval" : targets.interval
       "path" : targets.path
       "unhealthy_threshold" : targets.unhealthy_threshold
-      "timeout" : target.timeout 
+      "timeout" : targets.timeout 
     }]]) : "${item.target_application_id}" => item
   }
   

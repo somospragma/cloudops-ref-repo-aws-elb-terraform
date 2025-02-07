@@ -93,6 +93,7 @@ variable "lb_config" {
       - interval: (string) Approximate amount of time, in seconds, between health checks of an individual target. The range is 5-300. For lambda target groups, it needs to be greater than the timeout of the underlying lambda. Defaults to 30.
       - path: (string) Destination for the health check request. Required for HTTP/HTTPS ALB and HTTP NLB. Only applies to HTTP/HTTPS.
       - unhealthy_threshold: (string) Number of consecutive health check failures required before considering a target unhealthy. The range is 2-10. Defaults to 3.
+      - timeout: (string) Amount of time, in seconds, during which no response from a target means a failed health check. The range is 2-120 seconds. The timeout must be less than the interval value.
     - listeners: (list(object))
       - port: (number) Port on which the load balancer is listening. Not valid for Gateway Load Balancers.
       - protocol: (string) Protocol for connections from clients to the load balancer. For Application Load Balancers, valid values are HTTP and HTTPS, with a default of HTTP. For Network Load Balancers, valid values are TCP, TLS, UDP, and TCP_UDP. Not valid to use UDP or TCP_UDP if dual-stack mode is enabled. Not valid for Gateway Load Balancers.
