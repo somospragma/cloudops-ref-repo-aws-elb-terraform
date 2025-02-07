@@ -43,6 +43,7 @@ variable "lb_config" {
       interval = string
       path = string
       unhealthy_threshold = string
+      timeout = string
     }))
     listeners = list(object({
       port = number
