@@ -1,6 +1,6 @@
 resource "aws_lb" "loadbalancer" {
   # checkov:skip=CKV_AWS_91: In first version of the module, resource won't include access logs
-  provider                         = aws.elb
+  provider                         = aws.project
   for_each                         = var.lb_config
   name                             = local.lb_names[each.key]
   internal                         = each.value.internal
@@ -23,14 +23,14 @@ resource "aws_lb" "loadbalancer" {
 
 //Creacion asociacion waf con alb
 resource "aws_wafv2_web_acl_association" "waf_lb" {
-  provider     = aws.elb
+  provider     = aws.project
   for_each     = {for key, lb in var.lb_config : key => lb if lb.waf_arn != ""}
   resource_arn = aws_lb.loadbalancer[each.key].arn
   web_acl_arn  = each.value.waf_arn
 }
 
 resource "aws_lb_target_group" "lb_target_group" {
-  provider    = aws.elb
+  provider    = aws.project
   for_each    = local.flattened_target_groups
   name        = join("-", [var.environment, "target", each.key])
   port        = each.value.target_group.port
@@ -59,7 +59,7 @@ resource "aws_lb_target_group" "lb_target_group" {
 
 resource "aws_lb_listener" "lb_listener" {
   # checkov:skip=CKV_AWS_2: protocol is send as variable
-  provider    = aws.elb
+  provider    = aws.project
   for_each    = local.flattened_listeners
   
   default_action {
@@ -81,7 +81,7 @@ resource "aws_lb_listener" "lb_listener" {
 }
 
 resource "aws_lb_listener_rule" "listener_rule" {
-  provider     = aws.elb
+  provider     = aws.project
   for_each     = local.listener_rules_map
   listener_arn = aws_lb_listener.lb_listener[each.value.listener_key].arn
   priority     = each.value.rule.priority
