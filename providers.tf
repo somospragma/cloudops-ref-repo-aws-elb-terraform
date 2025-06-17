@@ -1,13 +1,10 @@
-###########################################
-#Version definition - Terraform - Providers
-###########################################
-
 terraform {
+  required_version = ">= 1.0.0"
   required_providers {
     aws = {
-      configuration_aliases = [aws.project]
-      source                = "hashicorp/aws"
-      version               = ">=4.31.0"
+      source  = "hashicorp/aws"
+      version = ">=4.31.0"
+      configuration_aliases = [aws.elb]
     }
   }
 }
