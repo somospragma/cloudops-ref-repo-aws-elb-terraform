@@ -55,6 +55,7 @@ El módulo consiste en los siguientes archivos:
 * **variables.tf**: Define todas las variables de entrada que el módulo acepta para configuración.
 * **outputs.tf**: Define los valores de salida que el módulo proporciona después del despliegue.
 * **providers.tf**: Define los requisitos de proveedores y sus configuraciones.
+* **locals.tf**: Contiene las transformaciones y cálculos locales para facilitar el manejo de datos.
 * **data.tf**: Contiene recursos de datos que pueden ser utilizados por el módulo.
 * **examples/**: Directorio con ejemplos de implementación del módulo.
 
@@ -157,7 +158,7 @@ Las etiquetas se aplican siguiendo esta jerarquía, donde las más específicas 
 | project | Identificador del proyecto usado en la nomenclatura de recursos | `string` | n/a | sí |
 | client | Identificador del cliente usado en la nomenclatura de recursos | `string` | n/a | sí |
 | environment | Entorno de despliegue (ej., DEV, QA, PROD) usado en la nomenclatura de recursos | `string` | n/a | sí |
-| tags | Mapa de etiquetas a aplicar a todos los recursos | `map(string)` | `{}` | no |
+| tags | Mapa de etiquetas (NOTA: Esta variable está reservada para uso futuro. Actualmente, las etiquetas específicas deben definirse en additional_tags dentro de cada recurso) | `map(string)` | `{}` | no |
 
 ### Estructura de Configuración
 
@@ -239,6 +240,7 @@ module "load_balancer" {
     aws.elb = aws.principal
   }
   
+  # Las etiquetas específicas se definen en additional_tags dentro de cada recurso
   lb_config = {
     "api-lb" = {
       internal                   = false
@@ -252,6 +254,9 @@ module "load_balancer" {
       application_id             = "api"
       additional_tags            = {
         Department = "Engineering"
+        Owner      = "DevOps"
+        Environment = "Development"
+        Project     = "API Platform"
       }
       
       listeners = [
@@ -319,12 +324,6 @@ module "load_balancer" {
         }
       ]
     }
-  }
-  
-  tags = {
-    Owner       = "DevOps"
-    Environment = "Development"
-    Project     = "API Platform"
   }
 }
 ```

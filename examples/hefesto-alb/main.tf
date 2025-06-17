@@ -42,6 +42,14 @@ module "hefesto_load_balancer" {
       application_id             = "bs"
       additional_tags            = {
         Name = "pragma-hefesto-dev-alb-bs-01"
+        Environment = "dev"
+        Project     = "hefesto"
+        Owner       = "cloudops"
+        Client      = "pragma"
+        Area        = "infrastructure"
+        Provisioned = "terraform"
+        Datatype    = "operational"
+        Application = "Backstage"
       }
       
       listeners = [
@@ -107,9 +115,5 @@ module "hefesto_load_balancer" {
         }
       ]
     }
-  }
-  
-  tags = {
-    Application = "Backstage"
   }
 }

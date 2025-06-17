@@ -85,7 +85,7 @@ variable "environment" {
 }
 
 variable "tags" {
-  description = "Mapa de etiquetas a aplicar a todos los recursos"
+  description = "Mapa de etiquetas a aplicar a todos los recursos (NOTA: Esta variable está reservada para uso futuro. Actualmente, las etiquetas específicas deben definirse en additional_tags dentro de cada recurso)"
   type    = map(string)
   default = {}
 }

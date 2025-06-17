@@ -17,7 +17,6 @@ resource "aws_lb" "loadbalancer" {
       Name = local.lb_names[each.key],
       application_id = each.value.application_id
     },
-    var.tags,
     each.value.additional_tags
   )
 }
@@ -54,7 +53,6 @@ resource "aws_lb_target_group" "lb_target_group" {
       Name = join("-", [var.environment, "target", each.key]),
       application_id = each.key
     },
-    var.tags,
     each.value.target_group.additional_tags
   )
 }
@@ -78,7 +76,6 @@ resource "aws_lb_listener" "lb_listener" {
     { 
       Name = join("-", [var.environment, "listener", each.key]) 
     },
-    var.tags,
     lookup(each.value.listener, "additional_tags", {})
   )
 }
