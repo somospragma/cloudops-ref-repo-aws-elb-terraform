@@ -6,7 +6,7 @@ locals {
       var.project,
       var.environment,
       "${lb.load_balancer_type == "application" ? "a" : "n"}lb",
-      lb.application_id
+      key
     ])
   }
 
