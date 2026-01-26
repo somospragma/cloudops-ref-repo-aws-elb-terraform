@@ -1,5 +1,42 @@
+###########################################
+########## Common Variables ###############
+###########################################
+
+variable "client" {
+  type        = string
+  description = "Client name or business unit identifier"
+  
+  validation {
+    condition     = length(var.client) > 0 && length(var.client) <= 10
+    error_message = "Client name must be between 1 and 10 characters"
+  }
+}
+
+variable "project" {
+  type        = string
+  description = "Project name identifier"
+  
+  validation {
+    condition     = length(var.project) > 0 && length(var.project) <= 15
+    error_message = "Project name must be between 1 and 15 characters"
+  }
+}
+
+variable "environment" {
+  type        = string
+  description = "Environment where resources will be deployed (dev, qa, pdn)"
+  
+  validation {
+    condition     = contains(["dev", "qa", "pdn", "prod"], var.environment)
+    error_message = "Environment must be one of: dev, qa, pdn, prod"
+  }
+}
+
+###########################################
+######### Load Balancer Variables #########
+###########################################
+
 variable "lb_config" {
-  description = "Mapa de configuraciones de balanceadores de carga"
   type = map(object({
     internal                   = bool
     load_balancer_type         = string
@@ -9,83 +46,51 @@ variable "lb_config" {
     waf_arn                    = optional(string, "")
     subnets                    = list(string)
     security_groups            = list(string)
-    additional_tags            = optional(map(string), {})  # Etiquetas específicas para este balanceador
-    listeners = list(object({
-      protocol                = string
-      port                    = string
-      certificate             = string
-      default_target_group_id = string
-      additional_tags         = optional(map(string), {})  # Etiquetas específicas para este listener
-      rules = list(object({
-        priority              = number
-        target_application_id = string
-        action = object({
-          type = string
-        })
-        conditions = list(object({
-          host_headers = optional(list(object({
-            headers = list(string)
-          })),[])
-          path_patterns = optional(list(object({
-            patterns = list(string)
-          })),[])
-        }))
-      }))
-    }))
-
-    target_groups = list(object({
-      target_application_id = string
-      port                  = string
-      protocol              = string
-      vpc_id                = string
-      target_type           = string
-      healthy_threshold     = string
-      interval              = string
-      path                  = string
-      unhealthy_threshold   = string
-      matcher               = optional(string, "200")
-      additional_tags       = optional(map(string), {})  # Etiquetas específicas para este grupo de destino
-    }))
-
-    application_id = string
+    additional_tags            = optional(map(string), {})
+    application_id             = string
   }))
-  validation {
-    condition = alltrue([
-      for key, item in var.lb_config : alltrue([
-        for listener in item.listeners : alltrue([
-          for rule in listener.rules : alltrue([
-            for condition in rule.conditions : 
-              length(condition.host_headers) > 0 || length(condition.path_patterns) > 0
-          ])
-        ])
-      ])
-    ])
-    error_message = "Para una definición de condición, alguno de los dos parámetros (host_headers o path_patterns) debe ser enviado."
-  }
-}
-
-variable "project" {
-  description = "Identificador del proyecto usado en la nomenclatura de recursos"
-  type = string
-}
-
-variable "client" {
-  description = "Identificador del cliente usado en la nomenclatura de recursos"
-  type = string
-}
-
-variable "environment" {
-  description = "Entorno de despliegue (ej., DEV, QA, PROD) usado en la nomenclatura de recursos"
-  type = string
+  
+  description = <<-EOF
+    Map of Load Balancer configurations. Key is the load balancer identifier.
+    
+    - internal: (bool) Whether the load balancer is internal or internet-facing
+    - load_balancer_type: (string) Type of load balancer. Valid values: application, network
+    - drop_invalid_header_fields: (bool) Drop invalid header fields (ALB only)
+    - idle_timeout: (number) Idle timeout in seconds (1-4000)
+    - enable_deletion_protection: (optional, bool) Enable deletion protection. Defaults to true
+    - waf_arn: (optional, string) ARN of the WAF Web ACL to associate (ALB only)
+    - subnets: (list(string)) List of subnet IDs
+    - security_groups: (list(string)) List of security group IDs (ALB only, empty for NLB)
+    - additional_tags: (optional, map(string)) Additional tags to apply to the load balancer
+    - application_id: (string) Application identifier for tagging
+  EOF
   
   validation {
-    condition     = contains(["dev", "qa", "pdn"], lower(var.environment))
-    error_message = "El entorno debe ser uno de: dev, qa, pdn (case insensitive)."
+    condition     = length(var.lb_config) > 0
+    error_message = "At least one load balancer configuration must be provided"
   }
-}
-
-variable "tags" {
-  description = "Mapa de etiquetas a aplicar a todos los recursos (NOTA: Esta variable está reservada para uso futuro. Actualmente, las etiquetas específicas deben definirse en additional_tags dentro de cada recurso)"
-  type    = map(string)
-  default = {}
+  
+  validation {
+    condition = alltrue([
+      for key, lb in var.lb_config :
+      contains(["application", "network"], lb.load_balancer_type)
+    ])
+    error_message = "load_balancer_type must be either 'application' or 'network'"
+  }
+  
+  validation {
+    condition = alltrue([
+      for key, lb in var.lb_config :
+      lb.idle_timeout >= 1 && lb.idle_timeout <= 4000
+    ])
+    error_message = "idle_timeout must be between 1 and 4000 seconds"
+  }
+  
+  validation {
+    condition = alltrue([
+      for key, lb in var.lb_config :
+      length(join("-", [var.client, var.project, var.environment, lb.load_balancer_type == "application" ? "alb" : "nlb", key])) <= 32
+    ])
+    error_message = "The generated load balancer name exceeds the 32 character limit. Please use shorter keys in lb_config"
+  }
 }

@@ -1,248 +1,99 @@
-# Módulo Terraform: AWS Elastic Load Balancer
+# Módulo de Referencia: AWS ELB (Elastic Load Balancer)
 
 ## Descripción
-Este módulo Terraform permite la creación y configuración de balanceadores de carga AWS (tanto Application Load Balancers como Network Load Balancers) con características avanzadas que incluyen grupos de destino, oyentes, reglas de oyentes e integración con WAF. El módulo está diseñado para implementar configuraciones de balanceadores de carga siguiendo las mejores prácticas y gobernanza de AWS.
 
-Para ver el historial de cambios, consulta el [CHANGELOG.md](./CHANGELOG.md).
+Este módulo de referencia facilita la creación y gestión de balanceadores de carga AWS (Application Load Balancers y Network Load Balancers) siguiendo las mejores prácticas de seguridad y gobernanza definidas en las reglas PC-IAC.
 
-Se recomienda fijar la versión del módulo en implementaciones de producción:
-```hcl
-module "elb" {
-  source = "git::https://github.com/somospragma/modulos/cloudops-ref-repo-aws-elb-terraform.git?ref=v1.0.0"
-  # Resto de la configuración...
-}
-```
+**IMPORTANTE:** Este módulo crea únicamente el Load Balancer. Los Target Groups, Listeners y Listener Rules se gestionan en el módulo complementario `cloudops-ref-repo-aws-elb-listener-terraform`.
 
-## Diagrama de Arquitectura
-```
-                                  +----------------+
-                                  |                |
-                                  |   AWS WAF      |
-                                  |                |
-                                  +--------+-------+
-                                           |
-                                           v
-+--------+    HTTPS    +----------------+    HTTP    +----------------+
-|        |------------>|                |----------->|                |
-| Client |             | Load Balancer  |            | Target Groups  |
-|        |<------------|                |<-----------|                |
-+--------+             +----------------+            +----------------+
-                              |
-                              | Health Checks
-                              v
-                       +----------------+
-                       |                |
-                       | CloudWatch     |
-                       |                |
-                       +----------------+
-```
+### Estrategia de Separación
 
-## Características
-- ✅ Creación de múltiples balanceadores de carga con diferentes configuraciones
-- ✅ Soporte para Application Load Balancers (ALB) y Network Load Balancers (NLB)
-- ✅ Configuración de grupos de destino con health checks personalizables
-- ✅ Definición de oyentes con certificados SSL/TLS
-- ✅ Creación de reglas de enrutamiento complejas basadas en host headers y path patterns
+Este módulo forma parte de una estrategia de separación de responsabilidades:
+
+- **Módulo Transversal** (este módulo): Crea la infraestructura base compartida (Load Balancer)
+- **Módulo Funcionalidad** (`cloudops-ref-repo-aws-elb-listener-terraform`): Crea configuraciones específicas por servicio (Target Groups, Listeners, Rules)
+
+Esta separación permite:
+- ✅ Ciclos de vida independientes
+- ✅ Múltiples equipos trabajando en paralelo
+- ✅ Menor riesgo en cambios
+- ✅ Escalabilidad mejorada
+
+### Características Principales
+
+- ✅ Creación de Application Load Balancers (ALB)
+- ✅ Creación de Network Load Balancers (NLB)
 - ✅ Integración con AWS WAF para seguridad mejorada
-- ✅ Nomenclatura estandarizada de recursos y etiquetado
-- ✅ Soporte para balanceo de carga entre zonas
+- ✅ Nomenclatura estándar según PC-IAC-003
+- ✅ Sistema de etiquetado con merge de tags
 - ✅ Protección contra eliminación configurable
+- ✅ Cross-zone load balancing habilitado por defecto
+- ✅ Drop invalid header fields para ALB
+- ✅ Soporte para balanceadores internos y públicos
 
 ## Estructura del Módulo
-El módulo consiste en los siguientes archivos:
 
-* **main.tf**: Contiene la definición principal de los recursos de AWS Load Balancer, incluyendo balanceadores de carga, grupos de destino, oyentes y reglas de oyentes.
-* **variables.tf**: Define todas las variables de entrada que el módulo acepta para configuración.
-* **outputs.tf**: Define los valores de salida que el módulo proporciona después del despliegue.
-* **providers.tf**: Define los requisitos de proveedores y sus configuraciones.
-* **locals.tf**: Contiene las transformaciones y cálculos locales para facilitar el manejo de datos.
-* **data.tf**: Contiene recursos de datos que pueden ser utilizados por el módulo.
-* **examples/**: Directorio con ejemplos de implementación del módulo.
+```
+cloudops-ref-repo-aws-elb-terraform/
+├── .gitignore
+├── CHANGELOG.md
+├── README.md
+├── data.tf
+├── locals.tf
+├── main.tf
+├── outputs.tf
+├── providers.tf
+├── variables.tf
+├── versions.tf
+└── sample/
+    ├── README.md
+    ├── data.tf
+    ├── locals.tf
+    ├── main.tf
+    ├── outputs.tf
+    ├── providers.tf
+    ├── terraform.tfvars
+    └── variables.tf
+```
 
-## Implementación y Configuración
-
-### Requisitos Técnicos
+## Requisitos
 
 | Nombre | Versión |
 |--------|---------|
 | terraform | >= 1.0.0 |
 | aws | >= 4.31.0 |
 
-### Provider Configuration
+## Providers
 
-El módulo requiere la configuración de un proveedor AWS con alias:
+| Nombre | Alias | Descripción |
+|--------|-------|-------------|
+| aws | aws.project | Provider inyectado desde el módulo raíz |
+
+## Recursos Creados
+
+| Tipo | Descripción |
+|------|-------------|
+| `aws_lb` | Load Balancer (ALB o NLB) |
+| `aws_wafv2_web_acl_association` | Asociación de WAF con ALB (opcional) |
+
+## Uso del Módulo
+
+### Ejemplo Básico - ALB Público
 
 ```hcl
-provider "aws" {
-  region = "us-east-1"
-  alias  = "elb"
-  
-  default_tags {
-    tags = {
-      environment = var.environment
-      project     = var.project
-      owner       = "cloudops"
-      client      = var.client
-      area        = "infrastructure"
-      provisioned = "terraform"
-      datatype    = "operational"
-    }
-  }
-}
-
-module "elb" {
-  source = "path/to/module"
+module "alb_public" {
+  source = "git::https://github.com/org/cloudops-ref-repo-aws-elb-terraform.git?ref=v2.0.0"
   
   providers = {
-    aws.elb = aws.elb
+    aws.project = aws.principal
   }
-  
-  # Resto de la configuración...
-}
-```
 
-### Configuración del Backend
-
-Se recomienda utilizar un backend remoto para almacenar el estado de Terraform:
-
-```hcl
-terraform {
-  backend "s3" {
-    bucket         = "terraform-state-bucket"
-    key            = "elb/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "terraform-locks"
-    encrypt        = true
-  }
-}
-```
-
-### Convenciones de nomenclatura
-
-El módulo utiliza la siguiente convención de nomenclatura para los recursos:
-
-```
-{client}-{environment}-{application_id}-{resource_type}-{index}
-```
-
-Por ejemplo:
-- `cliente-dev-api-alb-1`: Application Load Balancer
-- `dev-target-api-payments`: Target Group
-- `dev-listener-api-443`: Listener
-
-### Estrategia de Etiquetado
-
-El sistema de etiquetado se implementa en tres niveles:
-
-1. **Etiquetas Transversales**: Definidas a nivel del proveedor AWS usando `default_tags`
-2. **Etiquetas Comunes**: Definidas en la variable `tags` del módulo
-3. **Etiquetas Específicas del Recurso**: Definidas en la propiedad `additional_tags` de cada recurso
-
-Las etiquetas se aplican siguiendo esta jerarquía, donde las más específicas tienen prioridad sobre las más generales.
-
-### Recursos Gestionados
-
-| Nombre | Tipo | Descripción |
-|--------|------|-------------|
-| aws_lb | Recurso | Balanceador de carga (ALB o NLB) |
-| aws_lb_target_group | Recurso | Grupo de destino para el balanceador |
-| aws_lb_listener | Recurso | Oyente para el balanceador |
-| aws_lb_listener_rule | Recurso | Regla de enrutamiento para el oyente |
-| aws_wafv2_web_acl_association | Recurso | Asociación de WAF con el balanceador |
-
-### Parámetros de Entrada
-
-| Nombre | Descripción | Tipo | Default | Requerido |
-|--------|-------------|------|---------|:--------:|
-| lb_config | Mapa de configuraciones de balanceadores de carga | `map(object)` | n/a | sí |
-| project | Identificador del proyecto usado en la nomenclatura de recursos | `string` | n/a | sí |
-| client | Identificador del cliente usado en la nomenclatura de recursos | `string` | n/a | sí |
-| environment | Entorno de despliegue (ej., DEV, QA, PROD) usado en la nomenclatura de recursos | `string` | n/a | sí |
-| tags | Mapa de etiquetas (NOTA: Esta variable está reservada para uso futuro. Actualmente, las etiquetas específicas deben definirse en additional_tags dentro de cada recurso) | `map(string)` | `{}` | no |
-
-### Estructura de Configuración
-
-La variable `lb_config` tiene la siguiente estructura:
-
-```hcl
-map(object({
-  internal                   = bool           # Si el balanceador es interno
-  load_balancer_type         = string         # Tipo de balanceador ("application" o "network")
-  drop_invalid_header_fields = bool           # Si se deben descartar campos de encabezado inválidos
-  idle_timeout               = number         # Tiempo de espera en segundos
-  enable_deletion_protection = optional(bool) # Si se debe habilitar la protección contra eliminación
-  waf_arn                    = optional(string) # ARN del WAF a asociar con el balanceador
-  subnets                    = list(string)   # Lista de IDs de subnets
-  security_groups            = list(string)   # Lista de IDs de grupos de seguridad
-  additional_tags            = optional(map(string), {}) # Etiquetas específicas para este balanceador
-  
-  listeners = list(object({
-    protocol                = string         # Protocolo del oyente (HTTP, HTTPS, TCP, TLS)
-    port                    = string         # Puerto del oyente
-    certificate             = string         # ARN del certificado SSL/TLS
-    default_target_group_id = string         # ID del grupo de destino por defecto
-    additional_tags         = optional(map(string), {}) # Etiquetas específicas para este oyente
-    
-    rules = list(object({
-      priority              = number         # Prioridad de la regla (número menor = mayor prioridad)
-      target_application_id = string         # ID de la aplicación de destino
-      action = object({
-        type = string                        # Tipo de acción (forward)
-      })
-      conditions = list(object({
-        host_headers = optional(list(object({
-          headers = list(string)             # Lista de host headers
-        })),[])
-        path_patterns = optional(list(object({
-          patterns = list(string)            # Lista de patrones de ruta
-        })),[])
-      }))
-    }))
-  }))
-
-  target_groups = list(object({
-    target_application_id = string           # ID de la aplicación de destino
-    port                  = string           # Puerto del grupo de destino
-    protocol              = string           # Protocolo del grupo de destino
-    vpc_id                = string           # ID de la VPC
-    target_type           = string           # Tipo de destino (instance, ip, lambda)
-    healthy_threshold     = string           # Número de verificaciones de salud exitosas consecutivas
-    interval              = string           # Intervalo de verificación de salud en segundos
-    path                  = string           # Ruta de verificación de salud
-    unhealthy_threshold   = string           # Número de verificaciones de salud fallidas consecutivas
-    matcher               = optional(string) # Códigos HTTP a usar al verificar respuestas exitosas
-    additional_tags       = optional(map(string), {}) # Etiquetas específicas para este grupo de destino
-  }))
-
-  application_id = string                    # Identificador de la aplicación
-}))
-```
-
-### Valores de Salida
-
-| Nombre | Descripción |
-|--------|-------------|
-| load_balancer_info | Lista de información de balanceadores de carga incluyendo ARN, nombre DNS y ID de zona |
-| target_group_info | Mapa de información de grupos de destino por ID de aplicación |
-
-### Ejemplos de Uso
-
-Ejemplo básico:
-
-```hcl
-module "load_balancer" {
-  source      = "path/to/module"
-  client      = "cliente"
-  project     = "api"
+  client      = "pragma"
+  project     = "platform"
   environment = "dev"
   
-  providers = {
-    aws.elb = aws.principal
-  }
-  
-  # Las etiquetas específicas se definen en additional_tags dentro de cada recurso
   lb_config = {
-    "api-lb" = {
+    "public" = {
       internal                   = false
       load_balancer_type         = "application"
       drop_invalid_header_fields = true
@@ -251,202 +102,297 @@ module "load_balancer" {
       waf_arn                    = ""
       subnets                    = ["subnet-12345678", "subnet-87654321"]
       security_groups            = ["sg-12345678"]
-      application_id             = "api"
-      additional_tags            = {
-        Department = "Engineering"
-        Owner      = "DevOps"
-        Environment = "Development"
-        Project     = "API Platform"
+      application_id             = "platform-api"
+      additional_tags = {
+        team        = "platform"
+        cost-center = "engineering"
       }
-      
-      listeners = [
-        {
-          protocol                = "HTTPS"
-          port                    = "443"
-          certificate             = "arn:aws:acm:us-east-1:123456789012:certificate/abcdef12-3456-7890-abcd-ef1234567890"
-          default_target_group_id = "api-default"
-          additional_tags         = {}
-          
-          rules = [
-            {
-              priority              = 100
-              target_application_id = "api-payments"
-              action = {
-                type = "forward"
-              }
-              conditions = [
-                {
-                  host_headers = [
-                    {
-                      headers = ["api.example.com"]
-                    }
-                  ]
-                  path_patterns = [
-                    {
-                      patterns = ["/payments/*"]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-      
-      target_groups = [
-        {
-          target_application_id = "api-default"
-          port                  = "8080"
-          protocol              = "HTTP"
-          vpc_id                = "vpc-12345678"
-          target_type           = "ip"
-          healthy_threshold     = "3"
-          interval              = "30"
-          path                  = "/health"
-          unhealthy_threshold   = "3"
-          matcher               = "200"
-          additional_tags       = {}
-        },
-        {
-          target_application_id = "api-payments"
-          port                  = "8081"
-          protocol              = "HTTP"
-          vpc_id                = "vpc-12345678"
-          target_type           = "ip"
-          healthy_threshold     = "3"
-          interval              = "30"
-          path                  = "/payments/health"
-          unhealthy_threshold   = "3"
-          matcher               = "200"
-          additional_tags       = {
-            Service = "Payments"
-          }
-        }
-      ]
     }
   }
 }
 ```
 
-Para ejemplos más avanzados, consulta el directorio [examples](./examples).
-
-## Escenarios de Uso Comunes
-
-### Balanceador de carga público con HTTPS
+### Ejemplo - ALB con WAF
 
 ```hcl
-lb_config = {
-  "public-alb" = {
-    internal                   = false
-    load_balancer_type         = "application"
-    drop_invalid_header_fields = true
-    idle_timeout               = 60
-    enable_deletion_protection = true
-    # Resto de la configuración...
+module "alb_with_waf" {
+  source = "git::https://github.com/org/cloudops-ref-repo-aws-elb-terraform.git?ref=v2.0.0"
+  
+  providers = {
+    aws.project = aws.principal
   }
-}
-```
 
-### Balanceador de carga interno para microservicios
-
-```hcl
-lb_config = {
-  "internal-alb" = {
-    internal                   = true
-    load_balancer_type         = "application"
-    drop_invalid_header_fields = true
-    idle_timeout               = 60
-    enable_deletion_protection = true
-    # Resto de la configuración...
-  }
-}
-```
-
-### Network Load Balancer para tráfico TCP
-
-```hcl
-lb_config = {
-  "tcp-nlb" = {
-    internal                   = false
-    load_balancer_type         = "network"
-    drop_invalid_header_fields = false
-    idle_timeout               = 60
-    enable_deletion_protection = true
-    # Resto de la configuración...
-    
-    listeners = [
-      {
-        protocol                = "TCP"
-        port                    = "80"
-        certificate             = ""
-        default_target_group_id = "tcp-default"
-        # Resto de la configuración...
+  client      = "pragma"
+  project     = "ecommerce"
+  environment = "pdn"
+  
+  lb_config = {
+    "frontend" = {
+      internal                   = false
+      load_balancer_type         = "application"
+      drop_invalid_header_fields = true
+      idle_timeout               = 120
+      enable_deletion_protection = true
+      waf_arn                    = "arn:aws:wafv2:us-east-1:123456789012:regional/webacl/example/a1b2c3d4"
+      subnets                    = ["subnet-11111111", "subnet-22222222"]
+      security_groups            = ["sg-11111111"]
+      application_id             = "web-frontend"
+      additional_tags = {
+        compliance = "PCI-DSS"
+        owner      = "WebTeam"
       }
-    ]
+    }
   }
 }
 ```
 
-## Consideraciones Operativas
+### Ejemplo - NLB Interno
 
-### Rendimiento y Escalabilidad
+```hcl
+module "nlb_internal" {
+  source = "git::https://github.com/org/cloudops-ref-repo-aws-elb-terraform.git?ref=v2.0.0"
+  
+  providers = {
+    aws.project = aws.principal
+  }
 
-- Los Application Load Balancers pueden manejar miles de conexiones por segundo
-- Para cargas de trabajo muy altas, considera usar múltiples balanceadores o Network Load Balancers
-- El balanceo de carga entre zonas está habilitado por defecto para mejor distribución del tráfico
+  client      = "pragma"
+  project     = "backend"
+  environment = "pdn"
+  
+  lb_config = {
+    "internal" = {
+      internal                   = true
+      load_balancer_type         = "network"
+      drop_invalid_header_fields = false
+      idle_timeout               = 350
+      enable_deletion_protection = true
+      waf_arn                    = ""  # WAF no aplica para NLB
+      subnets                    = ["subnet-33333333", "subnet-44444444"]
+      security_groups            = []  # NLB no usa security groups
+      application_id             = "backend-services"
+      additional_tags = {
+        tier = "backend"
+      }
+    }
+  }
+}
+```
 
-### Limitaciones y Restricciones
+### Ejemplo - Múltiples Load Balancers
 
-- Los Network Load Balancers no soportan la integración con WAF
-- Los balanceadores de carga tienen cuotas de servicio que pueden necesitar ser aumentadas para implementaciones grandes
-- La protección contra eliminación debe desactivarse manualmente antes de eliminar un balanceador
+```hcl
+module "load_balancers" {
+  source = "git::https://github.com/org/cloudops-ref-repo-aws-elb-terraform.git?ref=v2.0.0"
+  
+  providers = {
+    aws.project = aws.principal
+  }
 
-### Costos y Optimización
+  client      = "pragma"
+  project     = "platform"
+  environment = "pdn"
+  
+  lb_config = {
+    "public-alb" = {
+      internal                   = false
+      load_balancer_type         = "application"
+      drop_invalid_header_fields = true
+      idle_timeout               = 60
+      enable_deletion_protection = true
+      waf_arn                    = "arn:aws:wafv2:us-east-1:123456789012:regional/webacl/public/a1b2c3d4"
+      subnets                    = ["subnet-pub-1", "subnet-pub-2"]
+      security_groups            = ["sg-public"]
+      application_id             = "public-api"
+      additional_tags            = {}
+    }
+    "internal-nlb" = {
+      internal                   = true
+      load_balancer_type         = "network"
+      drop_invalid_header_fields = false
+      idle_timeout               = 350
+      enable_deletion_protection = true
+      waf_arn                    = ""
+      subnets                    = ["subnet-priv-1", "subnet-priv-2"]
+      security_groups            = []
+      application_id             = "internal-services"
+      additional_tags            = {}
+    }
+  }
+}
+```
 
-- Los costos de los balanceadores de carga dependen del tipo, horas de funcionamiento y datos procesados
-- Considera usar balanceadores internos para tráfico entre servicios para reducir costos
-- Monitorea el uso para optimizar el tamaño y tipo de balanceador
+## Inputs
 
-### Recomendaciones de Implementación
+| Nombre | Descripción | Tipo | Requerido | Default |
+|--------|-------------|------|-----------|---------|
+| `client` | Nombre del cliente o unidad de negocio | `string` | Sí | - |
+| `project` | Nombre del proyecto | `string` | Sí | - |
+| `environment` | Ambiente de despliegue (dev, qa, pdn) | `string` | Sí | - |
+| `lb_config` | Mapa de configuraciones de load balancers | `map(object)` | Sí | - |
 
-- Usa subnets en múltiples zonas de disponibilidad para alta disponibilidad
-- Implementa health checks adecuados para cada servicio
-- Configura timeouts apropiados según la naturaleza de tus aplicaciones
-- Habilita logs de acceso para auditoría y solución de problemas
+### Estructura de `lb_config`
+
+```hcl
+map(object({
+  internal                   = bool           # Si el balanceador es interno
+  load_balancer_type         = string         # "application" o "network"
+  drop_invalid_header_fields = bool           # Descartar headers inválidos (solo ALB)
+  idle_timeout               = number         # Timeout en segundos (1-4000)
+  enable_deletion_protection = optional(bool) # Protección contra eliminación
+  waf_arn                    = optional(string) # ARN del WAF (solo ALB)
+  subnets                    = list(string)   # IDs de subnets
+  security_groups            = list(string)   # IDs de security groups (solo ALB)
+  additional_tags            = optional(map(string)) # Etiquetas adicionales
+  application_id             = string         # ID de la aplicación
+}))
+```
+
+## Outputs
+
+| Nombre | Descripción | Tipo |
+|--------|-------------|------|
+| `load_balancer_info` | Información completa de los load balancers | `map(object)` |
+| `load_balancer_arns` | Mapa de ARNs por clave | `map(string)` |
+| `load_balancer_dns_names` | Mapa de DNS names por clave | `map(string)` |
+| `load_balancer_zone_ids` | Mapa de zone IDs por clave | `map(string)` |
+
+## Nomenclatura
+
+Los load balancers siguen el patrón de nomenclatura estándar (PC-IAC-003):
+
+```
+{client}-{project}-{environment}-{alb|nlb}-{key}
+```
+
+**Ejemplos:**
+- `pragma-platform-dev-alb-public`
+- `pragma-backend-pdn-nlb-internal`
 
 ## Seguridad y Cumplimiento
 
-### Consideraciones de seguridad
+### Hardenizado de Seguridad (PC-IAC-020)
 
-- Usa HTTPS para todo el tráfico externo
-- Configura security groups restrictivos para los balanceadores
-- Implementa WAF para protección contra amenazas web comunes
-- Habilita la eliminación de campos de encabezado inválidos
+Este módulo implementa las siguientes medidas de seguridad por defecto:
 
-### Mejores Prácticas Implementadas
+- ✅ **Cross-zone load balancing**: Habilitado por defecto para alta disponibilidad
+- ✅ **Drop invalid header fields**: Habilitado para ALB (seguridad)
+- ✅ **Protección contra eliminación**: Configurable (true por defecto)
+- ✅ **Integración con WAF**: Soporte para ALB públicos
+- ✅ **Security groups**: Requeridos para ALB, no para NLB
 
-- Balanceo de carga entre zonas para alta disponibilidad
-- Protección contra eliminación para prevenir eliminaciones accidentales
-- Integración con WAF para seguridad mejorada
-- Eliminación de campos de encabezado inválidos
-- Nomenclatura estandarizada y etiquetado consistente
+### Validaciones
 
-### Lista de Verificación de Cumplimiento
+El módulo incluye validaciones para:
+- Longitud de nombres de variables de gobernanza
+- Valores válidos para `environment` (dev, qa, pdn, prod)
+- Valores válidos para `load_balancer_type` (application, network)
+- Rango válido para `idle_timeout` (1-4000 segundos)
+- Longitud del nombre generado (máximo 32 caracteres)
 
-- [x] Nomenclatura de recursos conforme al estándar
-- [x] Etiquetas obligatorias aplicadas a todos los recursos
-- [x] Validaciones para garantizar configuraciones correctas
-- [x] Soporte para HTTPS con certificados SSL/TLS
-- [x] Configuración de health checks para monitoreo
-- [x] Integración con WAF para protección contra amenazas
-- [x] Balanceo de carga entre zonas para alta disponibilidad
-- [x] Protección contra eliminación configurable
+## Cumplimiento de Reglas PC-IAC
 
-## Observaciones
+Este módulo cumple con las siguientes reglas de gobernanza:
 
-- Este módulo está diseñado para ser flexible y adaptarse a diferentes casos de uso
-- Para balanceadores de carga internos, asegúrate de que las subnets tengan rutas adecuadas
-- La integración con WAF es opcional pero altamente recomendada para balanceadores públicos
-- Considera implementar redirección de HTTP a HTTPS para mejorar la seguridad
+| Regla | Descripción | Implementación |
+|-------|-------------|----------------|
+| PC-IAC-001 | Estructura de Módulo | 18 archivos obligatorios (10 raíz + 8 sample/) |
+| PC-IAC-002 | Variables | Validaciones, tipos explícitos, uso de `map(object)` |
+| PC-IAC-003 | Nomenclatura Estándar | Construcción en `locals.tf` con patrón estándar |
+| PC-IAC-004 | Etiquetas (Tagging) | Merge de Name y additional_tags |
+| PC-IAC-005 | Providers | Alias `aws.project` consumido desde el Root |
+| PC-IAC-006 | Versiones | `required_version >= 1.0.0`, provider >= 4.31.0 |
+| PC-IAC-007 | Outputs | Outputs granulares (ARNs, DNS names, zone IDs) |
+| PC-IAC-009 | Tipos y Conversiones | Uso de `optional()`, validaciones de tipo |
+| PC-IAC-010 | For_Each | Uso de `for_each` con `map` para estabilidad |
+| PC-IAC-011 | Data Sources | Data sources solo en el Root (sample/) |
+| PC-IAC-012 | Locals | Centralización de nomenclatura |
+| PC-IAC-020 | Hardenizado | Cross-zone LB, drop invalid headers |
+| PC-IAC-023 | Responsabilidad Única | Solo crea Load Balancers |
+| PC-IAC-026 | Patrón sample/ | Flujo tfvars → locals → main |
 
-> "Este módulo ha sido desarrollado siguiendo los estándares de Pragma CloudOps, garantizando una implementación segura, escalable y optimizada que cumple con todas las políticas de la organización. Pragma CloudOps recomienda revisar este código con su equipo de infraestructura antes de implementarlo en producción."
+## Decisiones de Diseño
+
+### Separación de Responsabilidades
+
+El módulo se enfoca únicamente en crear el Load Balancer, delegando Target Groups y Listeners a un módulo separado. Esto permite:
+
+- Ciclos de vida independientes
+- Menor riesgo en cambios
+- Múltiples equipos trabajando en paralelo
+- Escalabilidad mejorada
+
+### Uso de `map(object)` en lugar de `list(object)`
+
+Se utiliza `map(object)` para la variable `lb_config` (PC-IAC-002) para garantizar la estabilidad del estado de Terraform.
+
+### Cross-Zone Load Balancing
+
+Habilitado por defecto para mejor distribución del tráfico y alta disponibilidad.
+
+### Protección contra Eliminación
+
+Por defecto está habilitada (`enable_deletion_protection = true`). Debe desactivarse manualmente antes de destruir el recurso.
+
+## Consideraciones Importantes
+
+### Dependencias con Módulo Listener
+
+Este módulo debe usarse en conjunto con `cloudops-ref-repo-aws-elb-listener-terraform`:
+
+1. **Primero**: Desplegar este módulo (crea el Load Balancer)
+2. **Segundo**: Desplegar el módulo listener (crea TG, Listeners, Rules)
+
+### Security Groups
+
+- **ALB**: Requiere security groups
+- **NLB**: No usa security groups (lista vacía)
+
+### WAF Integration
+
+- Solo disponible para Application Load Balancers
+- Network Load Balancers no soportan WAF
+
+### Limitaciones
+
+- Los Network Load Balancers no soportan WAF
+- Los Network Load Balancers no usan security groups
+- El módulo no crea Target Groups ni Listeners (usar módulo complementario)
+- Idle timeout solo aplica para ALB (1-4000 segundos)
+
+## Ejemplo Completo
+
+Para un ejemplo funcional completo, consulta el directorio `sample/` que incluye:
+- Configuración de ejemplo en `terraform.tfvars`
+- Inyección dinámica de subnet IDs y security group IDs
+- Múltiples load balancers con diferentes configuraciones
+- Integración con WAF
+
+## Versionamiento
+
+Este módulo sigue [Semantic Versioning](https://semver.org/). Consulta el [CHANGELOG.md](./CHANGELOG.md) para ver el historial de cambios.
+
+## Próximos Pasos
+
+Después de desplegar este módulo:
+
+1. Usar el output `load_balancer_info` para obtener el ARN del LB
+2. Desplegar el módulo `cloudops-ref-repo-aws-elb-listener-terraform`
+3. Configurar Target Groups y Listeners en el módulo complementario
+4. Registrar targets en los Target Groups
+
+## Contribución
+
+Para contribuir a este módulo, por favor:
+1. Asegúrate de que todos los cambios cumplan con las reglas PC-IAC
+2. Actualiza el CHANGELOG.md
+3. Ejecuta `terraform fmt` y `terraform validate`
+4. Actualiza la documentación si es necesario
+
+## Licencia
+
+Copyright © 2025 Pragma S.A.
+
+## Soporte
+
+Para soporte o preguntas, contacta al equipo de CloudOps.
